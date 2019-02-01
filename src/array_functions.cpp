@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include<cstring>
 #include "constants.h"
 #include "utilities.h"
 using namespace std;
@@ -40,11 +41,7 @@ void clearArray(){
 
 //how many unique words are in array
 int getArraySize(){
-	int size = 0;
-	if (nextOpen > 1){
-		size = nextOpen -1 ;
-	}
-	return size;
+	return nextOpen;
 }
 
 //get data at a particular location
@@ -66,9 +63,31 @@ int getArrayWord_NumbOccur_At(int i){
 	return constants::FAIL_NO_ARRAY_DATA;
 }
 
+/*iff myfile is open then close it*/
+void closeFile(std::fstream& myfile){
+
+	if(myfile.is_open()){
+		myfile.close();
+	}
+}
+
 /*Keep track of how many times each token seen*/
 void processToken(std::string &token){
-
+	if (strip_unwanted_chars(token)){
+		for (int i=0; i < constants::MAX_WORDS; i++){
+			string temp = token;
+			string word = myEntryArray[i].word;
+			toUpper(temp);
+			toUpper(word);
+			if (temp == word) {
+				myEntryArray[i].numTimes++;
+				return;
+			}
+		}
+		myEntryArray[nextOpen].word = token;
+		myEntryArray[nextOpen].numTimes++;
+		nextOpen++;
+	}
 }
 
 /*take 1 line and extract all the tokens from it
@@ -100,6 +119,7 @@ bool processFile(std::fstream &myfstream){
 		getline(myfstream,line);
 		processLine(line);
 	}
+	closeFile(myfstream);
 	return fileStatus;
 }
 
@@ -108,22 +128,13 @@ bool processFile(std::fstream &myfstream){
 bool openFile(std::fstream& myfile, const std::string& myFileName,
 		std::ios_base::openmode mode = std::ios_base::in){
 
-	myfile.open("myFileName.c_str()", std::fstream::in);
+	myfile.open(myFileName.c_str(), std::fstream::in);
 	if (!myfile.is_open()){
 		bool notOpen = false;
 		return notOpen;
 	}
-
 	bool open = true;
 	return open;
-}
-
-/*iff myfile is open then close it*/
-void closeFile(std::fstream& myfile){
-
-	if(myfile.is_open()){
-		myfile.close();
-	}
 }
 
 /* serializes all content in myEntryArray to file outputfilename
@@ -132,6 +143,18 @@ void closeFile(std::fstream& myfile){
  * 			SUCCESS if all data is written and outputfilename closes OK
  * */
 int writeArraytoFile(const std::string &outputfilename){
+	ofstream file;
+	file.open(outputfilename.c_str());
+	if (!file.is_open()){
+		return constants::FAIL_FILE_DID_NOT_OPEN;
+	}
+	if (nextOpen == 0){
+		return constants::FAIL_NO_ARRAY_DATA;
+	}
+	for (int i = 0; i < getArraySize(); i++){
+		file << myEntryArray[i].word << " " << myEntryArray[i].numTimes << endl;
+	}
+	file.close();
 	return constants::SUCCESS;
 }
 
@@ -141,7 +164,47 @@ int writeArraytoFile(const std::string &outputfilename){
  * The presence of the enum implies a switch statement based on its value
  */
 void sortArray(constants::sortOrder so){
+	switch(so) {
+	case constants::NONE:
+		break;
 
+	case constants::ASCENDING:
+		for(int i=0; i< getArraySize(); i++) {
+		        for(int j=i+1; j<getArraySize(); j++) {
+		            //If there is a smaller element found on right of the array then swap it.
+		        	if(myEntryArray[j].word < myEntryArray[i].word) {
+		                tracker temp = myEntryArray[i];
+		                myEntryArray[i] = myEntryArray[j];
+		                myEntryArray[j] = temp;
+		            }
+		        }
+		}
+		break;
+	case constants::DESCENDING:
+		for(int i=0; i< getArraySize(); i++) {
+			for(int j=i+1; j<getArraySize(); j++) {
+				if(myEntryArray[i].word < myEntryArray[j].word) {
+					{
+						tracker temp  = myEntryArray[i];
+						myEntryArray[i]= myEntryArray[j];
+						myEntryArray[j]=temp;
+					}
+				}
+			}
+		}
+		break;
+	case constants::NUMBER_OCCURRENCES:
+		for(int i=0; i< getArraySize(); i++) {
+			for(int j=i+1; j<getArraySize(); j++) {
+				if(myEntryArray[j].numTimes< myEntryArray[i].numTimes) {
+					tracker temp = myEntryArray[i];
+					myEntryArray[i] = myEntryArray[j];
+					myEntryArray[j] = temp;
+				}
+			}
+		}
+		break;
+	}
 }
 
 
